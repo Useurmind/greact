@@ -58,6 +58,7 @@ func TestLexerCanParseSimpleFile(t *testing.T) {
 func TestLexerCanParseElementsFile(t *testing.T) {
 	lexer := NewLexerForTestFile(t, "test_data/elements.gsx")
 	expTokens := []TokenWithPos{
+		// line 1
 		{
 			token: GSX_OPEN_ELEMENT,
 			pos:   NewPosition(1, 1),
@@ -82,6 +83,7 @@ func TestLexerCanParseElementsFile(t *testing.T) {
 			token: GSX_CLOSE_ELEMENT,
 			pos:   NewPosition(1, 11),
 		},
+		// line 2
 		{
 			token: GSX_OPEN_ELEMENT,
 			pos:   NewPosition(2, 1),
@@ -106,9 +108,73 @@ func TestLexerCanParseElementsFile(t *testing.T) {
 			token: GSX_CLOSE_ELEMENT,
 			pos:   NewPosition(2, 13),
 		},
+		// line 3
+		{
+			token: GSX_OPEN_ELEMENT,
+			pos:   NewPosition(3, 1),
+		},
+		{
+			token: NewIdent("SelfClosing"),
+			pos:   NewPosition(3, 2),
+		},
+		{
+			token: GSX_CLOSE_SELFCLOSE_ELEMENT,
+			pos:   NewPosition(3, 14),
+		},
 	}
 
-	for _, expTokenWithPos := range expTokens {
+	checkExpectedTokens(t, lexer, expTokens)
+}
+
+func TestLexerCanParseChildrenFile(t *testing.T) {
+	lexer := NewLexerForTestFile(t, "test_data/children.gsx")
+	expTokens := []TokenWithPos{
+		// line 1
+		{
+			token: GSX_OPEN_ELEMENT,
+			pos:   NewPosition(1, 1),
+		},
+		{
+			token: NewIdent("Parent"),
+			pos:   NewPosition(1, 2),
+		},
+		{
+			token: GSX_CLOSE_ELEMENT,
+			pos:   NewPosition(1, 8),
+		},
+		// line 2
+		{
+			token: GSX_OPEN_ELEMENT,
+			pos:   NewPosition(2, 5),
+		},
+		{
+			token: NewIdent("Child"),
+			pos:   NewPosition(2, 6),
+		},
+		{
+			token: GSX_CLOSE_SELFCLOSE_ELEMENT,
+			pos:   NewPosition(2, 12),
+		},
+		// line 3
+		{
+			token: GSX_OPEN_CLOSING_ELEMENT,
+			pos:   NewPosition(3, 1),
+		},
+		{
+			token: NewIdent("Parent"),
+			pos:   NewPosition(3, 3),
+		},
+		{
+			token: GSX_CLOSE_ELEMENT,
+			pos:   NewPosition(3, 9),
+		},
+	}
+
+	checkExpectedTokens(t, lexer, expTokens)
+}
+
+func checkExpectedTokens(t *testing.T, lexer *Lexer, expectedTokens []TokenWithPos) {
+	for _, expTokenWithPos := range expectedTokens {
 		expToken := expTokenWithPos.token
 		expPos := expTokenWithPos.pos
 		pos, token, err := lexer.Next()

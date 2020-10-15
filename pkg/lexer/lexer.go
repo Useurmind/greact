@@ -26,12 +26,12 @@ var (
 	GSX_OPEN_ELEMENT  = Token{Name: "GSX_OPEN_ELEMENT", Rune: '<'}
 	GSX_CLOSE_ELEMENT  = Token{Name: "GSX_CLOSE_ELEMENT", Rune: '>'}
 	GSX_OPEN_CLOSING_ELEMENT  = Token{Name: "GSX_CLOSE_ELEMENT", Rune: '<', Value: "</"}
-	GSX_CLOSE_SELFCLOSE_ELEMENT  = Token{Name: "GSX_SELFCLOSE_ELEMENT", Rune: '/', Value: "/>"}
-	IDENT = Token{Name: "IDENT"}
+	GSX_CLOSE_SELFCLOSE_ELEMENT  = Token{Name: "GSX_CLOSE_SELFCLOSE_ELEMENT", Rune: '/', Value: "/>"}
+	GSX_IDENT = Token{Name: "IDENT"}
 )
 
 func NewIdent(value string) Token {
-	token := IDENT
+	token := GSX_IDENT
 	token.Value = value
 	return token
 }
@@ -81,6 +81,11 @@ func (l *Lexer) Next() (Position, Token, error) {
 			return chain(l).
 				backup().
 				then(func() (Position, Token, error) { return l.lexGsxOpen() }).
+				do()
+		case GSX_CLOSE_SELFCLOSE_ELEMENT.Rune:
+			return chain(l).
+				backup().
+				then(func() (Position, Token, error) { return l.lexGsxCloseSelfClose() }).
 				do()
 		case GSX_CLOSE_ELEMENT.Rune:
 			return l.pos, GSX_CLOSE_ELEMENT, nil
@@ -148,6 +153,38 @@ func (l *Lexer) lexGsxOpen() (Position, Token, error) {
 	}
 
 	return startPos, GSX_OPEN_CLOSING_ELEMENT, nil
+}
+
+func (l *Lexer) lexGsxCloseSelfClose() (Position, Token, error) {
+
+	// read the /
+	r, pos, token, err := l.readRune()
+	if err != nil {
+		return pos, token, err
+	}
+	if token == EOF {
+		return pos, token, err
+	}
+	startPos := pos
+
+	if r != GSX_CLOSE_SELFCLOSE_ELEMENT.Rune {
+		return l.backup()
+	}
+
+	// read possible >
+	r, pos, token, err = l.readRune()
+	if err != nil {
+		return pos, token, err
+	}
+	if token == EOF {
+		return pos, token, err
+	}
+
+	if r == '>' {
+		return startPos, GSX_CLOSE_SELFCLOSE_ELEMENT, nil
+	}
+
+	return startPos, ILLEGAL, nil
 }
 
 func (l *Lexer) lexIdent() (Position, Token, error) {
