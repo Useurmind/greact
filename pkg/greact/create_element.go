@@ -2,24 +2,59 @@ package greact
 
 type Props map[string]interface{}
 
-type Element struct {
-	Tag string
-	Component Component
-	Props Props
-	Children []*Element
+type Element interface {
+	GetChildren() []Element
 }
 
-func CreateElement(elementType interface{}, props Props, children ...*Element) *Element {
-	element := &Element{
-		Props: props,
-		Children: children,
+type HTMLElement struct {
+	Tag      string
+	Props    Props
+	Children []Element
+}
+
+func (e *HTMLElement) GetChildren() []Element {
+	return e.Children
+}
+
+type ComponentElement struct {
+	Component Component
+	Props     interface{}
+	Children  []Element
+}
+
+func NewComponentElement(component Component, props interface{}, children ...Element) *ComponentElement {
+	element := &ComponentElement{
+		Component: component,
+		Props:     props,
+		Children:  children,
 	}
 
-	switch t := elementType.(type) {
+	if props != nil {
+		ApplyProps(element.Component, props)
+	}
+
+	return element
+}
+
+func (e *ComponentElement) GetChildren() []Element {
+	return e.Children
+}
+
+func CreateElement(elementType interface{}, props interface{}, children ...Element) Element {
+	var element Element
+	switch e := elementType.(type) {
 	case string:
-		element.Tag = t
+		var appliedProps Props
+		if props != nil {
+			appliedProps = props.(Props)
+		}
+		element = &HTMLElement{
+			Tag:      e,
+			Props:    appliedProps,
+			Children: children,
+		}
 	case Component:
-		element.Component = t
+		element = NewComponentElement(e, props, children...)
 	default:
 		panic("Unkown element type")
 	}
