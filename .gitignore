@@ -1,2 +1,3 @@
 bin
 wasm_exec.js
+test_app/assets/index.wasm

@@ -4,29 +4,28 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/useurmind/gosx/pkg/lexer"
+	"github.com/useurmind/greact/pkg/lexer"
 )
-
 
 type Node struct {
 	Type     string
-	Parent *Node
+	Parent   *Node
 	Children []*Node
 }
 
 type Parser struct {
-	lexer *lexer.Lexer
+	lexer       *lexer.Lexer
 	currentNode *Node
 	tokenBuffer struct {
 		token lexer.Token
-		pos lexer.Position
-		set bool
+		pos   lexer.Position
+		set   bool
 	}
 }
 
 func NewParser(reader io.Reader) *Parser {
 	return &Parser{
-		lexer: lexer.NewLexer(reader),
+		lexer:       lexer.NewLexer(reader),
 		currentNode: nil,
 	}
 }
@@ -36,7 +35,7 @@ func (p *Parser) Parse() (*Node, error) {
 	node, err := p.parseNode()
 
 	// rest of file should be "empty"
-	
+
 	pos, token, err := p.scanNextToken()
 	if err != nil {
 		return nil, err
@@ -57,8 +56,7 @@ func (p *Parser) parseNode() (*Node, error) {
 	}
 
 	if token.Name == lexer.GSX_OPEN_ELEMENT.Name {
-		newNode := &Node{
-		}
+		newNode := &Node{}
 
 		if p.currentNode != nil {
 			currentNode := p.currentNode
@@ -77,7 +75,7 @@ func (p *Parser) parseNode() (*Node, error) {
 
 	if token.Name == lexer.GSX_IDENT.Name {
 		p.currentNode.Type = token.Value
-	} else {		
+	} else {
 		return nil, fmt.Errorf("Expected identifier at %v", pos)
 	}
 
@@ -93,13 +91,12 @@ func (p *Parser) parseNode() (*Node, error) {
 	} else if token.Name == lexer.GSX_CLOSE_SELFCLOSE_ELEMENT.Name {
 		// element finished because of self close
 		return p.currentNode, nil
-	} else {		
+	} else {
 		return nil, fmt.Errorf("Expected %s or %s at %v", lexer.GSX_CLOSE_ELEMENT.Value, lexer.GSX_CLOSE_SELFCLOSE_ELEMENT.Value, pos)
 	}
 
-
 	for {
-		// parse children 
+		// parse children
 		pos, token, err = p.scanNextToken()
 		if err != nil {
 			return nil, err
@@ -118,18 +115,18 @@ func (p *Parser) parseNode() (*Node, error) {
 
 			p.currentNode.Children = append(p.currentNode.Children, child)
 			child.Parent = p.currentNode
-			
+
 		} else {
 			err = p.unscanToken()
 			if err != nil {
 				return nil, err
 			}
-			break;
+			break
 		}
-		
+
 	}
-	
-	// parse element closing 
+
+	// parse element closing
 	pos, token, err = p.scanNextToken()
 	if err != nil {
 		return nil, err
@@ -137,7 +134,7 @@ func (p *Parser) parseNode() (*Node, error) {
 
 	if token.Name == lexer.GSX_OPEN_CLOSING_ELEMENT.Name {
 		// continue below
-	} else {		
+	} else {
 		return nil, fmt.Errorf("Expected %s or child element at %v", lexer.GSX_OPEN_CLOSING_ELEMENT.Name, pos)
 	}
 
@@ -159,7 +156,7 @@ func (p *Parser) parseNode() (*Node, error) {
 
 	if token.Name == lexer.GSX_CLOSE_ELEMENT.Name {
 		return p.currentNode, nil
-	} 
+	}
 
 	return nil, fmt.Errorf("Expected %s at %v", lexer.GSX_CLOSE_ELEMENT.Value, pos)
 }
