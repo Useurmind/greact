@@ -16,7 +16,7 @@ func (c *ChildComponent) Render() greact.Element {
 	return greact.CreateElement(
 		"div", 
 		greact.Props {
-			"id": "child",
+			"id": "child_comp",
 			"innerHTML": "Hello " + c.Props.greeting,
 		})
 }

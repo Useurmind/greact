@@ -7,37 +7,48 @@ type StateHook struct {
 }
 
 type HookManager struct {
-	currentHook      int
-	currentComponent Component
-	hooks            map[Component][]interface{}
+	currentNode *VNode
+	hookCounters     map[*VNode]int
+	hooks            map[*VNode][]interface{}
 }
 
-func (h *HookManager) SetComponent(component Component) {
-	h.currentComponent = component
+func (h *HookManager) SetVNode(node *VNode) {
+	h.currentNode = node
+
+	// always reset this counter
+	h.hookCounters[node] = 0
+
+	_, ok := h.hooks[node]
+	if !ok {
+		h.hooks[node] = make([]interface{}, 0)
+	}
 }
 
 func (h *HookManager) GetOrCreateHook(hook interface{}) interface{} {
-	if h.currentComponent == nil {
-		panic("No component set when using hook")
+	if h.currentNode == nil {
+		panic("No node set when using hook")
 	}
 
-	currentHook := h.currentHook
-	h.currentHook++
-	compHooks := h.hooks[h.currentComponent]
+	hookCount := h.hookCounters[h.currentNode]
+	hooks := h.hooks[h.currentNode]
 
-	if len(compHooks) > currentHook {
+	if len(hooks) > hookCount {
 		fmt.Println("Returning existing hook")
-		return compHooks[currentHook]
-	} else {
-		fmt.Println("Creating new hook")
-		compHooks = append(compHooks, hook)
-		return hook
-	}
+		return hooks[hookCount]
+	} 
+
+	fmt.Println("Creating new hook")
+	h.hooks[h.currentNode] = append(hooks, hook)
+	h.hookCounters[h.currentNode] = h.hookCounters[h.currentNode] + 1
+	return hook
 }
 
-var hookManager = &HookManager{}
+var HookManagerInstance = &HookManager{
+	hookCounters: make(map[*VNode]int),
+	hooks: make(map[*VNode][]interface{}),
+}
 
 func UseState(initialValue interface{}) (interface{}, func(interface{})) {
-	stateHook := hookManager.GetOrCreateHook(&StateHook{State: initialValue}).(*StateHook)
+	stateHook := HookManagerInstance.GetOrCreateHook(&StateHook{State: initialValue}).(*StateHook)
 	return stateHook.State, func(state interface{}) { stateHook.State = state }
 }

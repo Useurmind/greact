@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/useurmind/greact/pkg/greact"
+	"github.com/useurmind/greact/pkg/greactdom"
 )
 
 func main() {  
 	fmt.Println("Go Web Assembly")
 	
-	greact.Render(greact.CreateElement(&RootComponent{}, nil, nil))
+	greactdom.Render(greact.CreateElement(&RootComponent{}, nil, nil))
 }
 

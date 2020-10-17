@@ -1,9 +1,15 @@
 package greact
 
+import (
+	"github.com/google/go-cmp/cmp")
+
+
 type Props map[string]interface{}
 
 type Element interface {
 	GetChildren() []Element
+
+	Equal(other Element) bool
 }
 
 type HTMLElement struct {
@@ -16,6 +22,30 @@ func (e *HTMLElement) GetChildren() []Element {
 	return e.Children
 }
 
+func (e *HTMLElement) Equal(other Element) bool {
+	switch o := other.(type) {
+	case *HTMLElement:
+		if e.Tag != o.Tag {
+			return false
+		}
+
+		for k,v := range e.Props {
+			vOther, ok := o.Props[k]
+			if !ok {
+				return false
+			}
+
+			if vOther != v {
+				return false
+			}
+		}
+
+		return true
+	default:
+		return false
+	}
+}
+
 type ComponentElement struct {
 	Component Component
 	Props     interface{}
@@ -26,7 +56,7 @@ func NewComponentElement(component Component, props interface{}, children ...Ele
 	element := &ComponentElement{
 		Component: component,
 		Props:     props,
-		Children:  children,
+		Children:  filterNilChildren(children...),
 	}
 
 	if props != nil {
@@ -40,6 +70,23 @@ func (e *ComponentElement) GetChildren() []Element {
 	return e.Children
 }
 
+func (e *ComponentElement) Equal(other Element) bool {
+	switch o := other.(type) {
+	case *ComponentElement:
+		cTypeEqual := CompareTypes(e.Component, o.Component)
+
+		if !cTypeEqual {
+			return false
+		}
+
+		cmp.Equal(e.Props, o.Props)
+
+		return true
+	default:
+		return false
+	}
+}
+
 func CreateElement(elementType interface{}, props interface{}, children ...Element) Element {
 	var element Element
 	switch e := elementType.(type) {
@@ -51,7 +98,7 @@ func CreateElement(elementType interface{}, props interface{}, children ...Eleme
 		element = &HTMLElement{
 			Tag:      e,
 			Props:    appliedProps,
-			Children: children,
+			Children: filterNilChildren(children...),
 		}
 	case Component:
 		element = NewComponentElement(e, props, children...)
@@ -61,3 +108,16 @@ func CreateElement(elementType interface{}, props interface{}, children ...Eleme
 
 	return element
 }
+
+func filterNilChildren(children ...Element) []Element {
+	nonNil := make([]Element, 0)
+
+	for _, child := range children {
+		if child != nil {
+			nonNil = append(nonNil, child)
+		}
+	}
+
+	return nonNil
+}
+
