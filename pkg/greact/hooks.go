@@ -2,53 +2,52 @@ package greact
 
 import "fmt"
 
-type StateHook struct {
-	State interface{}
+type Hook interface {
+
+}
+
+type LifecycleHook interface {
+	OnMounted()
+	OnRendering()
+	OnRendered()
+	OnUnmounting()
 }
 
 type HookManager struct {
 	currentNode *VNode
-	hookCounters     map[*VNode]int
-	hooks            map[*VNode][]interface{}
 }
 
 func (h *HookManager) SetVNode(node *VNode) {
 	h.currentNode = node
 
-	// always reset this counter
-	h.hookCounters[node] = 0
-
-	_, ok := h.hooks[node]
-	if !ok {
-		h.hooks[node] = make([]interface{}, 0)
+	if node != nil {
+		// always reset this counter
+		node.hookCounter = 0
 	}
 }
 
-func (h *HookManager) GetOrCreateHook(hook interface{}) interface{} {
+func (h *HookManager) ReplaceHook(index int, hook Hook) {
+	h.currentNode.hooks[index] = hook
+}
+
+func (h *HookManager) GetOrCreateHook(hook Hook) (Hook, int) {
 	if h.currentNode == nil {
 		panic("No node set when using hook")
 	}
 
-	hookCount := h.hookCounters[h.currentNode]
-	hooks := h.hooks[h.currentNode]
+	hookCount := h.currentNode.hookCounter
+	hooks := h.currentNode.hooks
 
 	if len(hooks) > hookCount {
 		fmt.Println("Returning existing hook")
-		return hooks[hookCount]
+		return hooks[hookCount], hookCount
 	} 
 
 	fmt.Println("Creating new hook")
-	h.hooks[h.currentNode] = append(hooks, hook)
-	h.hookCounters[h.currentNode] = h.hookCounters[h.currentNode] + 1
-	return hook
+	h.currentNode.hooks = append(hooks, hook)
+	h.currentNode.hookCounter = h.currentNode.hookCounter + 1
+	return hook, hookCount
 }
 
 var HookManagerInstance = &HookManager{
-	hookCounters: make(map[*VNode]int),
-	hooks: make(map[*VNode][]interface{}),
-}
-
-func UseState(initialValue interface{}) (interface{}, func(interface{})) {
-	stateHook := HookManagerInstance.GetOrCreateHook(&StateHook{State: initialValue}).(*StateHook)
-	return stateHook.State, func(state interface{}) { stateHook.State = state }
 }

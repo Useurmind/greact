@@ -31,6 +31,9 @@ type VNode struct {
 	Parent *VNode
 	Children []*VNode
 	EventListeners map[string]EventListener
+	
+	hookCounter     int
+	hooks            []Hook
 }
 
 func NewVNode(parent *VNode) *VNode {
@@ -38,6 +41,7 @@ func NewVNode(parent *VNode) *VNode {
 		Parent: parent,
 		Children: make([]*VNode, 0),
 		EventListeners: make(map[string]EventListener),
+		hooks: make([]Hook, 0),
 	}
 }
 
@@ -77,4 +81,40 @@ func (n *VNode) PopChildren(keepChildren int) []*VNode {
 	n.Children = n.Children[0:keepChildren]
 
 	return poppedChildren
+}
+
+func (n *VNode) OnMounted() {
+	for _, hook := range n.hooks {
+		switch h := hook.(type) {
+		case LifecycleHook:
+			h.OnMounted()
+		}
+	}
+}
+
+func (n *VNode) OnRendering() {
+	for _, hook := range n.hooks {
+		switch h := hook.(type) {
+		case LifecycleHook:
+			h.OnRendering()
+		}
+	}
+}
+
+func (n *VNode) OnRendered() {
+	for _, hook := range n.hooks {
+		switch h := hook.(type) {
+		case LifecycleHook:
+			h.OnRendered()
+		}
+	}
+}
+
+func (n *VNode) OnUnmounting() {
+	for _, hook := range n.hooks {
+		switch h := hook.(type) {
+		case LifecycleHook:
+			h.OnUnmounting()
+		}
+	}
 }
