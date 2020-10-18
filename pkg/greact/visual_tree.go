@@ -4,21 +4,53 @@ import (
 	"fmt"
 )
 
+type DOMNode interface{}
+type EventListener interface{}
+
+type VTree struct {
+	rootNode *VNode
+	mainNode *VNode
+	mainElement Element
+}
+
+func NewVTree(rootDOMNode DOMNode, mainElement Element) *VTree {
+	rootNode := NewVNode(nil)
+	rootNode.DOMNode = rootDOMNode
+	mainNode := rootNode.GetChild(0)
+	return &VTree{
+		rootNode: rootNode,
+		mainNode: mainNode,
+		mainElement: mainElement,
+	}
+}
 
 type VNode struct {
 	CurrentElement Element
-	NextElement    Element
-	JSNode         interface{}
+	DOMNode         DOMNode
 
+	Parent *VNode
 	Children []*VNode
-	EventListeners map[string]interface{}
+	EventListeners map[string]EventListener
 }
 
-func NewVNode() *VNode {
+func NewVNode(parent *VNode) *VNode {
 	return &VNode{
+		Parent: parent,
 		Children: make([]*VNode, 0),
-		EventListeners: make(map[string]interface{}),
+		EventListeners: make(map[string]EventListener),
 	}
+}
+
+func (n *VNode) FindParentDOMNode() DOMNode {
+	if n.Parent == nil {
+		return nil
+	}
+
+	if n.Parent.DOMNode != nil {
+		return n.Parent.DOMNode
+	}
+
+	return n.Parent.FindParentDOMNode()
 }
 
 func (n *VNode) GetChild(index int) *VNode {
@@ -30,7 +62,7 @@ func (n *VNode) GetChild(index int) *VNode {
 		return n.Children[index]
 	}
 
-	newChild := NewVNode()
+	newChild := NewVNode(n)
 	n.Children = append(n.Children, newChild)
 
 	return newChild

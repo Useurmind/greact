@@ -5,7 +5,7 @@ import (
 )
 
 func TestGetChildWorks(t *testing.T) {
-	parent := NewVNode()
+	parent := NewVNode(nil)
 
 	child1 := parent.GetChild(0)
 	child2 := parent.GetChild(1)
@@ -22,7 +22,7 @@ func TestGetChildWorks(t *testing.T) {
 }
 
 func TestPopChildrenWorks(t *testing.T) {
-	parent := NewVNode()
+	parent := NewVNode(nil)
 
 	child1 := parent.GetChild(0)
 	child2 := parent.GetChild(1)
@@ -47,7 +47,7 @@ func TestPopChildrenWorks(t *testing.T) {
 }
 
 func TestPopChildrenDoesNotKeepMoreThanAvailable(t *testing.T) {
-	parent := NewVNode()
+	parent := NewVNode(nil)
 
 	child1 := parent.GetChild(0)
 	child2 := parent.GetChild(1)
@@ -67,7 +67,7 @@ func TestPopChildrenDoesNotKeepMoreThanAvailable(t *testing.T) {
 
 
 func TestPopChildrenEmptysNodeChildrenOnZero(t *testing.T) {
-	parent := NewVNode()
+	parent := NewVNode(nil)
 
 	child1 := parent.GetChild(0)
 	child2 := parent.GetChild(1)

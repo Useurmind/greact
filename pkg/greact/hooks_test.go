@@ -5,7 +5,7 @@ import (
 )
 
 func TestInitialStateCorrect(t *testing.T) {
-	HookManagerInstance.SetVNode(NewVNode())
+	HookManagerInstance.SetVNode(NewVNode(nil))
 
 	state, _ := UseState(0)
 	if state.(int) != 0 {
@@ -14,7 +14,7 @@ func TestInitialStateCorrect(t *testing.T) {
 }
 
 func TestCanSetState(t *testing.T) {
-	node := NewVNode()
+	node := NewVNode(nil)
 
 	HookManagerInstance.SetVNode(node)
 	_, setState := UseState(0)
