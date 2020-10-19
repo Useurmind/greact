@@ -11,9 +11,10 @@ type VTree struct {
 	rootNode    *VNode
 	mainNode    *VNode
 	mainElement Element
+	requestRender func(node *VNode)
 }
 
-func NewVTree(rootDOMNode DOMNode, mainElement Element) *VTree {
+func NewVTree(rootDOMNode DOMNode, mainElement Element, requestRender func(node *VNode)) *VTree {
 	rootNode := NewVNode(nil)
 	rootNode.DOMNode = rootDOMNode
 	mainNode, _ := rootNode.GetChild(0)
@@ -21,6 +22,7 @@ func NewVTree(rootDOMNode DOMNode, mainElement Element) *VTree {
 		rootNode:    rootNode,
 		mainNode:    mainNode,
 		mainElement: mainElement,
+		requestRender: requestRender,
 	}
 }
 
@@ -34,7 +36,17 @@ type Renderer interface {
 }
 
 func (tree *VTree) Render(renderer Renderer) error {
-	renderQueue, err := tree.ComputeRenderQueue()
+	tree.mainNode.requestedRender = true
+	return tree.RenderNodeWithElement(renderer, tree.mainNode, tree.mainElement)
+}
+
+func (tree *VTree) RenderNode(renderer Renderer, node *VNode) error {
+	return tree.RenderNodeWithElement(renderer, node, node.CurrentElement)
+}
+
+func (tree *VTree) RenderNodeWithElement(renderer Renderer, node *VNode, element Element) error {
+	node.requestedRender = true
+	renderQueue, err := tree.ComputeRenderQueue(node, element)
 	if err != nil {
 		return err
 	}
@@ -78,6 +90,7 @@ type VNode struct {
 
 	hookCounter int
 	hooks       []Hook
+	requestedRender bool
 }
 
 func NewVNode(parent *VNode) *VNode {
@@ -163,6 +176,7 @@ func (n *VNode) OnRendered() {
 			h.OnRendered()
 		}
 	}
+	n.requestedRender = false
 }
 
 func (n *VNode) OnUnmounting() {

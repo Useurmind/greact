@@ -4,20 +4,27 @@ import (
 	"testing"
 )
 
-func TestSetVNodeWorks(t *testing.T) {
-	HookManagerInstance.SetVNode(NewVNode(nil))
-	HookManagerInstance.SetVNode(nil)
+func hookContextWithNode(node *VNode) *HookContext {
+	return &HookContext{
+		CurrentNode:     node,
+		RequestRerender: func(n *VNode) {},
+	}
+}
+
+func TestSetContextWorks(t *testing.T) {
+	HookManagerInstance.SetContext(hookContextWithNode(NewVNode(nil)))
+	HookManagerInstance.SetContext(nil)
 }
 
 func TestCreateMultipleHooksWorks(t *testing.T) {
 	node := NewVNode(nil)
 
 	// render 1
-	HookManagerInstance.SetVNode(node)
+	HookManagerInstance.SetContext(hookContextWithNode(node))
 	state1, _ := UseState(0)
 	state2, _ := UseState(1)
 	state3, _ := UseState(2)
-	HookManagerInstance.SetVNode(nil)
+	HookManagerInstance.SetContext(nil)
 
 	if state1.(int) != 0 {
 		t.Errorf("Hook1 should return state 0 but was %d", state1.(int))
@@ -30,11 +37,11 @@ func TestCreateMultipleHooksWorks(t *testing.T) {
 	}
 
 	// render 2
-	HookManagerInstance.SetVNode(node)
+	HookManagerInstance.SetContext(hookContextWithNode(node))
 	state1, _ = UseState(0)
 	state2, _ = UseState(1)
 	state3, _ = UseState(2)
-	HookManagerInstance.SetVNode(nil)
+	HookManagerInstance.SetContext(nil)
 
 	if state1.(int) != 0 {
 		t.Errorf("Hook1 should return state 0 but was %d", state1.(int))

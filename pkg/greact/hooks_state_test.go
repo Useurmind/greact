@@ -5,7 +5,7 @@ import (
 )
 
 func TestInitialStateCorrect(t *testing.T) {
-	HookManagerInstance.SetVNode(NewVNode(nil))
+	HookManagerInstance.SetContext(hookContextWithNode(NewVNode(nil)))
 
 	state, _ := UseState(0)
 	if state.(int) != 0 {
@@ -16,12 +16,12 @@ func TestInitialStateCorrect(t *testing.T) {
 func TestCanSetState(t *testing.T) {
 	node := NewVNode(nil)
 
-	HookManagerInstance.SetVNode(node)
+	HookManagerInstance.SetContext(hookContextWithNode(node))
 	_, setState := UseState(0)
 
 	setState(1)
 
-	HookManagerInstance.SetVNode(node)
+	HookManagerInstance.SetContext(hookContextWithNode(node))
 	state, _ := UseState(0)
 	if state.(int) != 1 {
 		t.Errorf("Changed state should be 1 but was %d", state.(int))

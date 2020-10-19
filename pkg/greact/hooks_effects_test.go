@@ -7,7 +7,7 @@ import (
 func TestUseEffectExecutesWithoutCleanup(t *testing.T) {
 	node := NewVNode(nil)
 	executed := false
-	runEffectHook(node, func() func() { 
+	runEffectHook(node, func() func() {
 		executed = true
 		return nil
 	}, 1)
@@ -22,7 +22,7 @@ func TestUseEffectExecutesWithCleanup(t *testing.T) {
 
 	executed := false
 	cleanedUp := false
-	runEffectHook(node, func() func() { 
+	runEffectHook(node, func() func() {
 		executed = true
 		return func() {
 			cleanedUp = true
@@ -42,17 +42,16 @@ func TestUseEffectDoesNotExecuteWhenArgsDidNotChange(t *testing.T) {
 	node := NewVNode(nil)
 	executed := false
 	cleanedUp := false
-	runEffectHook(node, func() func() { 
+	runEffectHook(node, func() func() {
 		executed = true
 		return func() {
 			cleanedUp = true
 		}
 	}, 1)
 
-	
 	executed = false
 	cleanedUp = false
-	runEffectHook(node, func() func() { 
+	runEffectHook(node, func() func() {
 		executed = true
 		return func() {
 			cleanedUp = true
@@ -73,16 +72,16 @@ func TestUseEffectDoesExecuteWhenArgsChange(t *testing.T) {
 	executed := false
 	cleanedUp := false
 
-	runEffectHook(node, func() func() { 
+	runEffectHook(node, func() func() {
 		executed = true
 		return func() {
 			cleanedUp = true
 		}
 	}, 1)
-	
+
 	executed = false
 	cleanedUp = false
-	runEffectHook(node, func() func() { 
+	runEffectHook(node, func() func() {
 		executed = true
 		return func() {
 			cleanedUp = true
@@ -103,8 +102,8 @@ func TestEffectPerformedOncePerCycle(t *testing.T) {
 	executed := 0
 	cleanedUp := 0
 
-	HookManagerInstance.SetVNode(node)
-	UseEffect(func() func() { 
+	HookManagerInstance.SetContext(hookContextWithNode(node))
+	UseEffect(func() func() {
 		executed = executed + 1
 		return func() {
 			cleanedUp = cleanedUp + 1
@@ -112,7 +111,7 @@ func TestEffectPerformedOncePerCycle(t *testing.T) {
 	}, 1)
 
 	// executed during 1 cycle in tree walk
-	node.OnRendering()	
+	node.OnRendering()
 	// executed during 1 cycle in post render
 	node.OnMounted()
 	node.OnRendered()
@@ -138,8 +137,8 @@ func TestEffectCleanupBeforeNextCycle(t *testing.T) {
 	cleanedUp := 0
 
 	// imitate render
-	HookManagerInstance.SetVNode(node)
-	UseEffect(func() func() { 
+	HookManagerInstance.SetContext(hookContextWithNode(node))
+	UseEffect(func() func() {
 		executed = executed + 1
 		return func() {
 			cleanedUp = cleanedUp + 1
@@ -147,7 +146,7 @@ func TestEffectCleanupBeforeNextCycle(t *testing.T) {
 	}, 1)
 
 	// executed during 1 cycle in tree walk
-	node.OnRendering()	
+	node.OnRendering()
 	// executed during 1 cycle in post render
 	node.OnMounted()
 	node.OnRendered()
@@ -160,8 +159,8 @@ func TestEffectCleanupBeforeNextCycle(t *testing.T) {
 	node.OnRendering()
 
 	// imitate render
-	HookManagerInstance.SetVNode(node)
-	UseEffect(func() func() { 
+	HookManagerInstance.SetContext(hookContextWithNode(node))
+	UseEffect(func() func() {
 		executed = executed + 1
 		return func() {
 			cleanedUp = cleanedUp + 1
@@ -185,8 +184,8 @@ func TestEffectDoesNotExecuteIfNothingChanged(t *testing.T) {
 	cleanedUp := 0
 
 	// imitate render
-	HookManagerInstance.SetVNode(node)
-	UseEffect(func() func() { 
+	HookManagerInstance.SetContext(hookContextWithNode(node))
+	UseEffect(func() func() {
 		executed = executed + 1
 		return func() {
 			cleanedUp = cleanedUp + 1
@@ -194,7 +193,7 @@ func TestEffectDoesNotExecuteIfNothingChanged(t *testing.T) {
 	}, 1)
 
 	// executed during 1 cycle in tree walk
-	node.OnRendering()	
+	node.OnRendering()
 	// executed during 1 cycle in post render
 	node.OnMounted()
 	node.OnRendered()
@@ -211,8 +210,8 @@ func TestEffectDoesNotExecuteIfNothingChanged(t *testing.T) {
 	}
 
 	// imitate render with no changes
-	HookManagerInstance.SetVNode(node)
-	UseEffect(func() func() { 
+	HookManagerInstance.SetContext(hookContextWithNode(node))
+	UseEffect(func() func() {
 		executed = executed + 1
 		return func() {
 			cleanedUp = cleanedUp + 1
@@ -237,13 +236,13 @@ func TestEffectClosureWorks(t *testing.T) {
 	closure2Executed := false
 
 	// executed during 1 cycle in tree walk
-	node.OnRendering()	
+	node.OnRendering()
 
 	// imitate render
-	HookManagerInstance.SetVNode(node)
+	HookManagerInstance.SetContext(hookContextWithNode(node))
 	state, setState := UseState(1)
 	stateInt1 := state.(int)
-	UseEffect(func() func() { 
+	UseEffect(func() func() {
 		closure1Executed = true
 		if stateInt1 != 1 {
 			t.Errorf("Expected state to be 1 in effect but was %d", stateInt1)
@@ -265,10 +264,10 @@ func TestEffectClosureWorks(t *testing.T) {
 	node.OnRendering()
 
 	// imitate render with no changes
-	HookManagerInstance.SetVNode(node)
+	HookManagerInstance.SetContext(hookContextWithNode(node))
 	state, setState = UseState(1)
 	stateInt2 := state.(int)
-	UseEffect(func() func() { 
+	UseEffect(func() func() {
 		closure2Executed = true
 		if stateInt2 != 2 {
 			t.Errorf("Expected state to be 2 in effect but was %d", stateInt2)
@@ -289,7 +288,7 @@ func TestEffectClosureWorks(t *testing.T) {
 }
 
 func runEffectHook(node *VNode, effect func() func(), args ...interface{}) *EffectHook {
-	HookManagerInstance.SetVNode(node)
+	HookManagerInstance.SetContext(hookContextWithNode(node))
 	UseEffect(effect, args...)
 
 	effectHook := node.hooks[0].(*EffectHook)
@@ -304,16 +303,16 @@ func TestUseEffectHook(t *testing.T) {
 	executed := false
 	cleanedUp := false
 
-	runEffectHook(node, func() func() { 
+	runEffectHook(node, func() func() {
 		executed = true
 		return func() {
 			cleanedUp = true
 		}
 	}, 1)
-	
+
 	executed = false
 	cleanedUp = false
-	runEffectHook(node, func() func() { 
+	runEffectHook(node, func() func() {
 		executed = true
 		return func() {
 			cleanedUp = true

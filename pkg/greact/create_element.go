@@ -47,7 +47,7 @@ func (e *HTMLElement) Equal(other Element) bool {
 				return false
 			}
 
-			if vOther != v {
+			if !CompareValues(vOther, v) {
 				return false
 			}
 		}
@@ -99,9 +99,7 @@ func (e *ComponentElement) Equal(other Element) bool {
 			return false
 		}
 
-		cmp.Equal(e.Props, o.Props)
-
-		return true
+		return cmp.Equal(e.Props, o.Props)
 	default:
 		return false
 	}

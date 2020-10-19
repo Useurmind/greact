@@ -17,6 +17,7 @@ type RootComponent struct {
 }
 
 func (c *RootComponent) Render() greact.Element {
+	nameValue, setNameValue := greact.UseState("Lise")
 	switchValue, setSwitchValue := greact.UseState(true)
 	greact.UseEffect(func() func() {
 		fmt.Println("Perform Effect RootComponent", switchValue.(bool))
@@ -24,11 +25,6 @@ func (c *RootComponent) Render() greact.Element {
 			fmt.Println("Cleanup Effect RootComponent", switchValue.(bool))
 		}
 	}, switchValue.(bool))
-
-	renderedName := "Lise"
-	if !switchValue.(bool) {
-		renderedName = "Hugo"
-	}
 
 	return greact.CreateElement(
 		"div",
@@ -41,16 +37,27 @@ func (c *RootComponent) Render() greact.Element {
 		greact.CreateElement("button", greact.Props{
 			"key":       "root_comp_div_button",
 			"type":      "button",
-			"innerHTML": "Switch Child",
+			"innerHTML": "Switch Name",
 			"onClick": func() {
-				setSwitchValue(!switchValue.(bool))
-				fmt.Println("Button pressed ", switchValue)
+				name := "Lise"
+				if nameValue.(string) == "Lise" {
+					name = "Hugo"
+				}
+				setNameValue(name)
 			},
 		}),
 		greact.CreateElement(&ChildComponent{}, &ChildComponentProps{
 			Key:      "ChildComponent",
-			greeting: renderedName,
+			Greeting: nameValue.(string),
 		}, nil),
+		greact.CreateElement("button", greact.Props{
+			"key":       "root_comp_div_button",
+			"type":      "button",
+			"innerHTML": "Switch Conditional Component",
+			"onClick": func() {
+				setSwitchValue(!switchValue.(bool))
+			},
+		}),
 		func() greact.Element {
 			if switchValue.(bool) {
 				fmt.Println("Render conditional element")

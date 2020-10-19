@@ -39,14 +39,13 @@ func Render(root greact.Element) {
 	renderer := &Renderer{
 		jsDoc: jsDoc,
 		jsRoot: jsRoot,
-		vTree: greact.NewVTree(jsRoot, root),
 	}
+	renderer.vTree = greact.NewVTree(jsRoot, root, func(n *greact.VNode) {
+		renderer.renderVNode(n)
+	})
 
-	for i := 0; i < 1; i++{
-		fmt.Println("Render loop")
-		err := renderer.renderRoot()
-		HandleError(err)
-	}
+	err := renderer.renderRoot()
+	HandleError(err)
 
 	fmt.Println("Waiting to exit")
 	c := make(chan bool)
@@ -58,6 +57,13 @@ func (r *Renderer) renderRoot() error {
 
 	return r.vTree.Render(r)
 }
+
+func (r *Renderer) renderVNode(node *greact.VNode) error {
+	fmt.Printf("Render node %s\n", node.Key())
+
+	return r.vTree.RenderNode(r, node)
+}
+
 
 func (r *Renderer) HandleInsertDOMNodeAction(action *greact.InsertDOMNodeAction) error {
 	element := action.Element
@@ -158,7 +164,6 @@ func HandleError(err error) {
 func (r *Renderer) wrapGoFunction(fn func()) func(js.Value, []js.Value) interface {} {
     return func(_ js.Value, _ []js.Value) interface {} {
 		fn()
-		r.renderRoot()
         return nil
     }
 }
