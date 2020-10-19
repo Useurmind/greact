@@ -5,6 +5,7 @@ import (
 )
 
 type ChildComponentProps struct {
+	Key string
 	greeting string
 }
 

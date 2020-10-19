@@ -1,12 +1,16 @@
 package greact
 
 import (
-	"github.com/google/go-cmp/cmp")
+	"reflect"
+	"github.com/google/go-cmp/cmp"
+)
 
 
 type Props map[string]interface{}
 
 type Element interface {
+	GetKey() string
+
 	GetChildren() []Element
 
 	Equal(other Element) bool
@@ -16,6 +20,14 @@ type HTMLElement struct {
 	Tag      string
 	Props    Props
 	Children []Element
+}
+
+func (e *HTMLElement) GetKey() string {
+	key, ok := e.Props["key"]
+	if !ok {
+		return ""
+	}
+	return key.(string)
 }
 
 func (e *HTMLElement) GetChildren() []Element {
@@ -64,6 +76,14 @@ func NewComponentElement(component Component, props interface{}, children ...Ele
 	}
 
 	return element
+}
+
+func (e *ComponentElement) GetKey() string {
+	if e.Props == nil {
+		return ""
+	}
+
+	return reflect.ValueOf(e.Props).Elem().FieldByName("Key").String()
 }
 
 func (e *ComponentElement) GetChildren() []Element {

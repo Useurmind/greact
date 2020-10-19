@@ -7,8 +7,12 @@ import (
 func TestGetChildWorks(t *testing.T) {
 	parent := NewVNode(nil)
 
-	child1 := parent.GetChild(0)
-	child2 := parent.GetChild(1)
+	child1, create1 := parent.GetChild(0)
+	child2, create2 := parent.GetChild(1)
+
+	if !create1 || !create2 {
+		t.Errorf("Both childs should have been created")
+	}
 
 	if child1 == nil || child2 == nil || child1 == child2 {
 		t.Errorf("Childs should not be nil and not be equal")
@@ -24,11 +28,11 @@ func TestGetChildWorks(t *testing.T) {
 func TestPopChildrenWorks(t *testing.T) {
 	parent := NewVNode(nil)
 
-	child1 := parent.GetChild(0)
-	child2 := parent.GetChild(1)
-	child3 := parent.GetChild(2)
-	child4 := parent.GetChild(3)
-	child5 := parent.GetChild(4)
+	child1, _ := parent.GetChild(0)
+	child2, _ := parent.GetChild(1)
+	child3, _ := parent.GetChild(2)
+	child4, _ := parent.GetChild(3)
+	child5, _ := parent.GetChild(4)
 
 	popped := parent.PopChildren(3)
 
@@ -49,8 +53,8 @@ func TestPopChildrenWorks(t *testing.T) {
 func TestPopChildrenDoesNotKeepMoreThanAvailable(t *testing.T) {
 	parent := NewVNode(nil)
 
-	child1 := parent.GetChild(0)
-	child2 := parent.GetChild(1)
+	child1, _ := parent.GetChild(0)
+	child2, _ := parent.GetChild(1)
 
 	popped := parent.PopChildren(3)
 
@@ -69,8 +73,8 @@ func TestPopChildrenDoesNotKeepMoreThanAvailable(t *testing.T) {
 func TestPopChildrenEmptysNodeChildrenOnZero(t *testing.T) {
 	parent := NewVNode(nil)
 
-	child1 := parent.GetChild(0)
-	child2 := parent.GetChild(1)
+	child1, _ := parent.GetChild(0)
+	child2, _ := parent.GetChild(1)
 
 	popped := parent.PopChildren(0)
 

@@ -10,6 +10,6 @@ import (
 func main() {  
 	fmt.Println("Go Web Assembly")
 	
-	greactdom.Render(greact.CreateElement(&RootComponent{}, nil, nil))
+	greactdom.Render(greact.CreateElement(&RootComponent{}, &RootComponentProps{ Key: "RootComponent" }, nil))
 }
 

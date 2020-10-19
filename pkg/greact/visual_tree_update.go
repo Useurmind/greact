@@ -27,24 +27,56 @@ func (t *VTree) WalkTree(queue *RenderQueue, index int, node *VNode, element Ele
 }
 
 func (t *VTree) WalkComponentElement(queue *RenderQueue, index int, node *VNode, element *ComponentElement) error {
+	var err error
+	
+	if node.CurrentElement == nil {
+		// if the previous element was nil this is a mount
+		queue.AddPostRenderAction(&ComponentMountedAction{
+			Node: node,
+		})
+	} else if !CompareTypes(node.CurrentElement, element) {
+		// if the component type changed this is an unmount and remount
+		node.OnUnmounting()
+		queue.AddPostRenderAction(&ComponentMountedAction{
+			Node: node,
+		})
+	}
+
+	node.CurrentElement = element
+
 	HookManagerInstance.SetVNode(node)
+	node.OnRendering()
 	renderedElement := element.Component.Render()
 	HookManagerInstance.SetVNode(nil)
 
-	renderedNode := node.GetChild(0)
+	// if the previous element was nil this is a mount
+	queue.AddPostRenderAction(&ComponentRenderedAction{
+		Node: node,
+	})
 
-	err := t.WalkTree(queue, 0, renderedNode, renderedElement)
-
-	node.CurrentElement = element
+	keptChildren := 0	
+	if renderedElement != nil {
+		keptChildren = 1
+		renderedNode, _ := node.GetChild(0)
+		err = t.WalkTree(queue, 0, renderedNode, renderedElement)
+	}
+	
+	err = t.removeUnusedChildNodes(queue, node, keptChildren)
+	if err != nil {
+		return err
+	}
 
 	return err
 }
 
 func (t *VTree) WalkHTMLElement(queue *RenderQueue, index int, node *VNode, element *HTMLElement) error {
+	// unmounting happens in this function
 	err := t.EnsureDOMNodeAction(queue, node, element)
 	if err != nil {
 		return err
 	}
+
+	node.CurrentElement = element
 
 	switch queue.LastAction().(type) {
 	case *ReuseDOMNodeAction:
@@ -65,23 +97,17 @@ func (t *VTree) WalkHTMLElement(queue *RenderQueue, index int, node *VNode, elem
 	if element.Children != nil {
 		numberChildren = len(element.Children)
 		for i, child := range element.Children {
-			childNode := node.GetChild(i)
+			childNode, _ := node.GetChild(i)
 
 			t.WalkTree(queue, i, childNode, child)
 		}
 	}
 
-
-	// remove unused nodes
-	poppedNodes := node.PopChildren(numberChildren)
-	for _, childNode := range poppedNodes {
-		queue.AddAction(&RemoveDOMNodeAction{
-			Node: childNode,
-		})
+	err = t.removeUnusedChildNodes(queue, node, numberChildren)
+	if err != nil {
+		return err
 	}
 	
-
-	node.CurrentElement = element
 
 	return nil
 }
@@ -108,14 +134,32 @@ func (t *VTree) EnsureDOMNodeAction(queue *RenderQueue, node *VNode, element *HT
 				Node: node,
 			})
 			return nil
-		}
-		
+		case *ComponentElement:
+			// if the previous element is a component we unmount it
+			node.OnUnmounting()
+		}		
 	}
+
 
 	// no we need to create a new node
 	queue.AddAction(&InsertDOMNodeAction{
 		Element: element,
 		Node: node,
 	})
+	return nil
+}
+
+func (t *VTree) removeUnusedChildNodes(queue *RenderQueue, node *VNode, keepChildren int) error {
+	poppedNodes := node.PopChildren(keepChildren)
+	for _, childNode := range poppedNodes {
+		// deleted nodes will have their elements removed
+		childNode.OnUnmounting()
+		childNode.UnmountChildrenRecurse()
+
+		queue.AddAction(&RemoveDOMNodeAction{
+			Node: childNode,
+		})
+	}
+
 	return nil
 }

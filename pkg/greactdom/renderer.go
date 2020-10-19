@@ -56,7 +56,7 @@ func Render(root greact.Element) {
 func (r *Renderer) renderRoot() error {
 	fmt.Println("Render root")
 
-	return greact.RenderVTree(r.vTree, r)
+	return r.vTree.Render(r)
 }
 
 func (r *Renderer) HandleInsertDOMNodeAction(action *greact.InsertDOMNodeAction) error {
