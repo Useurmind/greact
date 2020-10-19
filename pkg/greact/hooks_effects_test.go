@@ -98,6 +98,196 @@ func TestUseEffectDoesExecuteWhenArgsChange(t *testing.T) {
 	}
 }
 
+func TestEffectPerformedOncePerCycle(t *testing.T) {
+	node := NewVNode(nil)
+	executed := 0
+	cleanedUp := 0
+
+	HookManagerInstance.SetVNode(node)
+	UseEffect(func() func() { 
+		executed = executed + 1
+		return func() {
+			cleanedUp = cleanedUp + 1
+		}
+	}, 1)
+
+	// executed during 1 cycle in tree walk
+	node.OnRendering()	
+	// executed during 1 cycle in post render
+	node.OnMounted()
+	node.OnRendered()
+
+	if cleanedUp != 0 {
+		t.Errorf("After first cycle cleanup should not have happened but was %d", cleanedUp)
+	}
+
+	// executed during 2 cycle in tree walk
+	node.OnUnmounting()
+
+	if executed != 1 {
+		t.Errorf("Expected effect to be performed once but was %d", executed)
+	}
+	if cleanedUp != 1 {
+		t.Errorf("Expected cleanup to be performed once but was %d", cleanedUp)
+	}
+}
+
+func TestEffectCleanupBeforeNextCycle(t *testing.T) {
+	node := NewVNode(nil)
+	executed := 0
+	cleanedUp := 0
+
+	// imitate render
+	HookManagerInstance.SetVNode(node)
+	UseEffect(func() func() { 
+		executed = executed + 1
+		return func() {
+			cleanedUp = cleanedUp + 1
+		}
+	}, 1)
+
+	// executed during 1 cycle in tree walk
+	node.OnRendering()	
+	// executed during 1 cycle in post render
+	node.OnMounted()
+	node.OnRendered()
+
+	if cleanedUp != 0 {
+		t.Errorf("After first cycle cleanup should not have happened but was %d", cleanedUp)
+	}
+
+	// executed during 2 cycle in tree walk
+	node.OnRendering()
+
+	// imitate render
+	HookManagerInstance.SetVNode(node)
+	UseEffect(func() func() { 
+		executed = executed + 1
+		return func() {
+			cleanedUp = cleanedUp + 1
+		}
+	}, 2)
+
+	// executed during 2 cycle in post render
+	node.OnRendered()
+
+	if executed != 2 {
+		t.Errorf("Expected effect to be performed twice but was %d", executed)
+	}
+	if cleanedUp != 1 {
+		t.Errorf("Expected cleanup to be performed once but was %d", cleanedUp)
+	}
+}
+
+func TestEffectDoesNotExecuteIfNothingChanged(t *testing.T) {
+	node := NewVNode(nil)
+	executed := 0
+	cleanedUp := 0
+
+	// imitate render
+	HookManagerInstance.SetVNode(node)
+	UseEffect(func() func() { 
+		executed = executed + 1
+		return func() {
+			cleanedUp = cleanedUp + 1
+		}
+	}, 1)
+
+	// executed during 1 cycle in tree walk
+	node.OnRendering()	
+	// executed during 1 cycle in post render
+	node.OnMounted()
+	node.OnRendered()
+
+	if cleanedUp != 0 {
+		t.Errorf("After first cycle cleanup should not have happened but was %d", cleanedUp)
+	}
+
+	// executed during 2 cycle in tree walk
+	node.OnRendering()
+
+	if cleanedUp != 0 {
+		t.Errorf("After second cycle before rendering cleanup should not have happened but was %d", cleanedUp)
+	}
+
+	// imitate render with no changes
+	HookManagerInstance.SetVNode(node)
+	UseEffect(func() func() { 
+		executed = executed + 1
+		return func() {
+			cleanedUp = cleanedUp + 1
+		}
+	}, 1)
+
+	// executed during 2 cycle in post render
+	node.OnRendered()
+
+	// same effect should still be active
+	if executed != 1 {
+		t.Errorf("Expected effect to be performed once but was %d", executed)
+	}
+	if cleanedUp != 0 {
+		t.Errorf("Expected cleanup to be performed zero times but was %d", cleanedUp)
+	}
+}
+
+func TestEffectClosureWorks(t *testing.T) {
+	node := NewVNode(nil)
+	closure1Executed := false
+	closure2Executed := false
+
+	// executed during 1 cycle in tree walk
+	node.OnRendering()	
+
+	// imitate render
+	HookManagerInstance.SetVNode(node)
+	state, setState := UseState(1)
+	stateInt1 := state.(int)
+	UseEffect(func() func() { 
+		closure1Executed = true
+		if stateInt1 != 1 {
+			t.Errorf("Expected state to be 1 in effect but was %d", stateInt1)
+		}
+		return func() {
+			if stateInt1 != 1 {
+				t.Errorf("Expected state to be 1 in cleanup but was %d", stateInt1)
+			}
+		}
+	}, 1)
+
+	setState(2)
+
+	// executed during 1 cycle in post render
+	node.OnMounted()
+	node.OnRendered()
+
+	// executed during 2 cycle in tree walk
+	node.OnRendering()
+
+	// imitate render with no changes
+	HookManagerInstance.SetVNode(node)
+	state, setState = UseState(1)
+	stateInt2 := state.(int)
+	UseEffect(func() func() { 
+		closure2Executed = true
+		if stateInt2 != 2 {
+			t.Errorf("Expected state to be 2 in effect but was %d", stateInt2)
+		}
+		return func() {
+			if stateInt2 != 2 {
+				t.Errorf("Expected state to be 2 in cleanup but was %d", stateInt2)
+			}
+		}
+	}, 2)
+
+	node.OnRendered()
+	node.OnUnmounting()
+
+	if !closure1Executed || !closure2Executed {
+		t.Errorf("Expected both closures to be executed")
+	}
+}
+
 func runEffectHook(node *VNode, effect func() func(), args ...interface{}) *EffectHook {
 	HookManagerInstance.SetVNode(node)
 	UseEffect(effect, args...)

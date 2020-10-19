@@ -37,6 +37,8 @@ func (h *HookManager) GetOrCreateHook(hook Hook) (Hook, int) {
 
 	hookCount := h.currentNode.hookCounter
 	hooks := h.currentNode.hooks
+	
+	h.currentNode.hookCounter = h.currentNode.hookCounter + 1
 
 	if len(hooks) > hookCount {
 		fmt.Println("Returning existing hook")
@@ -45,7 +47,6 @@ func (h *HookManager) GetOrCreateHook(hook Hook) (Hook, int) {
 
 	fmt.Println("Creating new hook")
 	h.currentNode.hooks = append(hooks, hook)
-	h.currentNode.hookCounter = h.currentNode.hookCounter + 1
 	return hook, hookCount
 }
 

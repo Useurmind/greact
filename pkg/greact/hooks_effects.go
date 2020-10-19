@@ -1,8 +1,10 @@
 package greact
 
 type EffectHook struct {
+	effectActive bool
 	onlyOnce  bool
-	execute   bool
+	shouldExecute   bool
+	shouldCleanup bool
 	effect    func() func()
 	cleanup   func()
 	lastProps []interface{}
@@ -13,9 +15,9 @@ func (h *EffectHook) OnMounted() {
 }
 
 func (h *EffectHook) OnRendering() {
-	if !h.onlyOnce {
-		h.cleanup()
-	}
+	// if !h.onlyOnce {
+	// 	h.cleanupEffect()
+	// }
 }
 
 func (h *EffectHook) OnRendered() {
@@ -25,22 +27,24 @@ func (h *EffectHook) OnRendered() {
 }
 
 func (h *EffectHook) OnUnmounting() {
-	h.cleanup()
+	h.cleanupEffect()
 }
 
 func (h *EffectHook) executeEffect() {
-	if h.execute {
+	if h.shouldExecute {
+		h.cleanupEffect()
 		h.cleanup = h.effect()
+		h.shouldExecute = false
 	}
 }
 
 func (h *EffectHook) cleanupEffect() {
-	if h.execute {
+	if h.shouldCleanup {
 		if h.cleanup != nil {
 			h.cleanup()
 			h.cleanup = nil
+			h.shouldCleanup = false
 		}
-		h.execute = false
 	}
 }
 
@@ -48,8 +52,8 @@ func UseEffect(performEffect func() func(), dependentProps ...interface{}) {
 	useEffect(performEffect, false, dependentProps...)
 }
 
-func UseEffectOnce(performEffect func() func(), dependentProps ...interface{}) {
-	useEffect(performEffect, true, dependentProps...)
+func UseEffectOnce(performEffect func() func()) {
+	useEffect(performEffect, true,)
 }
 
 func useEffect(performEffect func() func(), onlyOnce bool, dependentProps ...interface{}) {
@@ -58,8 +62,8 @@ func useEffect(performEffect func() func(), onlyOnce bool, dependentProps ...int
 		effect:    performEffect,
 		lastProps: dependentProps,
 	}
-	hook, hookIndex := HookManagerInstance.GetOrCreateHook(newHook)
-	HookManagerInstance.ReplaceHook(hookIndex, newHook)
+	hook, _ := HookManagerInstance.GetOrCreateHook(newHook)
+	// HookManagerInstance.ReplaceHook(hookIndex, newHook)
 	oldHook := hook.(*EffectHook)
 
 	// always execute when
@@ -79,5 +83,8 @@ func useEffect(performEffect func() func(), onlyOnce bool, dependentProps ...int
 		}
 	}
 
-	newHook.execute = shouldExecute
+	oldHook.effect = newHook.effect
+	oldHook.shouldExecute = shouldExecute
+	oldHook.shouldCleanup = shouldExecute
+	oldHook.lastProps = newHook.lastProps
 }
